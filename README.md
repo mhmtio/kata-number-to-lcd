@@ -21,3 +21,5 @@ And supports different sizes, e.g. size 2 etc.:
     |    |__      __|       |     __| 
 
 ```
+
+Note: All LCD numbers are generated in size 1 first and then resized if needed.
