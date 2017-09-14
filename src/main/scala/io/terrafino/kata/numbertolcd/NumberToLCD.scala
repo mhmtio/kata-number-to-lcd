@@ -1,6 +1,13 @@
 package io.terrafino.kata.numbertolcd
 
-class NumberToLCD(factor:Int = 1) {
+class NumberToLCD(factor: Int = 1) {
+
+  private val CellToString = Map[Cell, String](
+    Blank() -> " ",
+    Dash() -> "_",
+    LBar() -> "|",
+    RBar() -> "|"
+  )
 
   def convert(number: Int): String = {
     val lcdDigits = number.toString.map(c => convertDigit(c.asDigit))
@@ -8,55 +15,37 @@ class NumberToLCD(factor:Int = 1) {
     getStringFor(resize(lcdNumber))
   }
 
-  def resize(lcdNumber: LCDNumber): LCDNumber = {
-    val newRows = lcdNumber.rows.toList.flatMap(resize)
-    LCDNumber(newRows: _*)
+  private def resize(lcdNumber: LCDNumber): LCDNumber = LCDNumber(lcdNumber.rows.flatMap(resize):_*)
+
+  private def resize(row: Row): List[Row] = {
+    val resizedCells = row.cells.map(resize)
+    val allRows = for (cell <- resizedCells) yield cell.map(Row(_: _*))
+    allRows.reduce((rows1, rows2) => rows1.zip(rows2).map(p => combineRows(p._1, p._2)))
   }
 
-  def resize(row: Row): List[Row] = {
-    val resizedCells: List[List[List[Cell]]] = row.cells.toList.map(resize)
-    val allRows: List[List[Row]] = for (cell <- resizedCells) yield cell.map{ case (cells) => Row(cells:_*)}
-    val res: List[Row] = allRows.reduce {
-      (r1: List[Row], r2: List[Row]) =>
-        r1.zip(r2).map {
-          case (row1, row2) => Row(row1.cells ++ row2.cells:_*)
-        }
-    }
-    res
+  private def resize(cell: Cell) = List.tabulate(factor, factor) {
+    (row: Int, col: Int) =>
+      cell match {
+        case Dash() => if (row < factor - 1) Blank() else Dash()
+        case LBar() => if (col < factor - 1) Blank() else LBar()
+        case RBar() => if (col == 0) RBar() else Blank()
+        case _ => Blank()
+      }
   }
 
-  def resize(cell: Cell): List[List[Cell]] = List.tabulate(factor, factor){(r: Int, c: Int) => go(r, c, cell)}
+  private def combineRows(row1: Row, row2: Row): Row = Row(row1.cells ++ row2.cells: _*)
 
-  def go(row: Int, col: Int, cell: Cell) : Cell = cell match {
-    case Dash() => if (row < factor - 1) Blank() else Dash()
-    case LBar() => if (col < factor - 1) Blank() else LBar()
-    case RBar() => if (col == 0) RBar() else Blank()
-    case _ => Blank()
-  }
-
-  def combine(d1: LCDNumber, d2: LCDNumber) = {
-    val rowsZipped: List[(Row, Row)] = d1.rows.toList zip d2.rows.toList
+  private def combine(n1: LCDNumber, n2: LCDNumber): LCDNumber = {
+    val rowsZipped = n1.rows zip n2.rows
     val combinedRows = rowsZipped map { case (r1, r2) => Row(r1.cells.toList ++ List(Blank()) ++ r2.cells: _*) }
     LCDNumber(combinedRows: _*)
   }
 
-  private def getStringFor(lcdNumber: LCDNumber): String = {
-    lcdNumber.rows.map(getStringFor).mkString("")
-  }
+  private def getStringFor(lcdNumber: LCDNumber): String = lcdNumber.rows.map(getStringFor).mkString("")
 
+  private def getStringFor(row: Row): String = row.cells.map(CellToString(_)).mkString("", "", "\n")
 
-  private def getStringFor(row: Row): String = {
-    row.cells.toList.map(getStringFor).mkString("", "", "\n")
-  }
-
-  private def getStringFor(cell: Cell): String = cell match {
-    case Blank() => " "
-    case Dash() => "_"
-    case LBar() => "|"
-    case RBar() => "|"
-  }
-
-  private def convertDigit(i: Int): LCDNumber = i match {
+  private def convertDigit(d: Int): LCDNumber = d match {
     case 0 => LCDNumber(Row(Blank(), Dash(), Blank()), Row(LBar(), Blank(), RBar()), Row(LBar(), Dash(), RBar()))
     case 1 => LCDNumber(Row(Blank(), Blank(), Blank()), Row(Blank(), Blank(), RBar()), Row(Blank(), Blank(), RBar()))
     case 2 => LCDNumber(Row(Blank(), Dash(), Blank()), Row(Blank(), Dash(), RBar()), Row(LBar(), Dash(), Blank()))
@@ -68,7 +57,6 @@ class NumberToLCD(factor:Int = 1) {
     case 8 => LCDNumber(Row(Blank(), Dash(), Blank()), Row(LBar(), Dash(), RBar()), Row(LBar(), Dash(), RBar()))
     case 9 => LCDNumber(Row(Blank(), Dash(), Blank()), Row(LBar(), Dash(), RBar()), Row(Blank(), Dash(), RBar()))
   }
-
 }
 
 trait Cell
